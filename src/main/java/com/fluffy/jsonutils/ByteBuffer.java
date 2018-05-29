@@ -15,11 +15,14 @@ public class ByteBuffer extends ByteArrayOutputStream {
     public synchronized void write(byte[] b) {
         super.write(b, 0, b.length);
         inputStream.replaceBuf(buf, count);
-        System.out.println("Debug+" + inputStream.pos() + "|" + inputStream.count());
     }
 
     public synchronized int getPos() {
         return inputStream.pos();
+    }
+
+    public synchronized void setPos(int pos) {
+        inputStream.setPos(pos);
     }
 
     public synchronized ByteArrayInputStream getInputStream() {
@@ -27,9 +30,10 @@ public class ByteBuffer extends ByteArrayOutputStream {
     }
 
     public synchronized void compact() {
+        int reservedCount = count;
         reset();
         int offset = getPos();
-        write(buf, offset, buf.length - offset);
+        write(buf, offset, reservedCount - offset);
         inputStream.replaceBuf(buf, count, 0);
     }
 
@@ -52,8 +56,8 @@ public class ByteBuffer extends ByteArrayOutputStream {
             return pos;
         }
 
-        int count() {
-            return count;
+        void setPos(int pos) {
+            this.pos = pos;
         }
     }
 }

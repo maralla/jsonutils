@@ -16,15 +16,32 @@ public class JsonParserFactory {
         return (new Factory()).createParser(in);
     }
 
-    class Parser extends UTF8StreamJsonParser {
+    public class Parser extends UTF8StreamJsonParser {
+        private int inputPtrMarker;
+        private int inputEndMarker;
+        private byte[] inputBufferMarker;
+
         Parser(IOContext ctx, int features, InputStream in, ObjectCodec codec, ByteQuadsCanonicalizer sym,
-               byte[] inputBuffer, int start, int end, boolean bufferRecyclable) {
-            super(ctx, features, in, codec, sym, inputBuffer, start, end, bufferRecyclable);
+               byte[] inputBuffer) {
+            super(ctx, features, in, codec, sym, inputBuffer, 0, 0, false);
         }
 
         @Override
         protected void _closeInput() {
             // Do nothing.
+        }
+
+        public void mark() {
+            inputPtrMarker = _inputPtr;
+            inputEndMarker = _inputEnd;
+            inputBufferMarker = new byte[_inputEnd - _inputPtr];
+            System.arraycopy(_inputBuffer, _inputPtr, inputBufferMarker, 0, _inputEnd - _inputPtr);
+        }
+
+        public void reset() {
+            _inputPtr = inputPtrMarker;
+            _inputEnd = inputEndMarker;
+            System.arraycopy(inputBufferMarker, 0, _inputBuffer, _inputPtr, _inputEnd - _inputPtr);
         }
     }
 
@@ -32,8 +49,7 @@ public class JsonParserFactory {
         @Override
         protected JsonParser _createParser(InputStream in, IOContext ctxt) {
             return new Parser(ctxt, _parserFeatures, in, _objectCodec,
-                    _byteSymbolCanonicalizer.makeChild(_factoryFeatures), ctxt.allocReadIOBuffer(),
-                    0, 0, true);
+                    _byteSymbolCanonicalizer.makeChild(_factoryFeatures), ctxt.allocReadIOBuffer());
         }
     }
 }

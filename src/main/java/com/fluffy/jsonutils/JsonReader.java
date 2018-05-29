@@ -1,14 +1,12 @@
 package com.fluffy.jsonutils;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.io.JsonEOFException;
 
 import java.util.*;
 
 public class JsonReader {
     ByteBuffer stream;
-    JsonParser parser;
+    JsonParserFactory.Parser parser;
     private Stack<Status> ctx = new Stack<>();
 
     public JsonReader() throws Exception {
@@ -18,7 +16,7 @@ public class JsonReader {
     public JsonReader(byte[] data) throws Exception {
         stream = new ByteBuffer(data.length);
         stream.write(data);
-        parser = new JsonParserFactory().createParser(stream.getInputStream());
+        parser = (JsonParserFactory.Parser) new JsonParserFactory().createParser(stream.getInputStream());
     }
 
     private boolean inObject() {
@@ -54,11 +52,7 @@ public class JsonReader {
         } else if (inArray()) {
             appendObj(value);
         } else {
-            System.out.println("===================");
-            long offset = parser.getCurrentLocation().getByteOffset();
-            System.out.println(offset + "|" + value + "|" + stream.getPos());
             values.add(value);
-            stream.compact();
         }
     }
 
@@ -66,17 +60,25 @@ public class JsonReader {
         stream.write(data);
     }
 
-    public List<Object> parse() throws Exception {
+    public List<Object> parse() {
         List<Object> values = new ArrayList<>();
         JsonToken tok;
-        try {
-            while ((tok = parser.nextToken()) != null) {
+        while (true) {
+            int pos = stream.getPos();
+            try {
+                parser.mark();
+                tok = parser.nextToken();
+                if (tok == null) {
+                    break;
+                }
                 doParse(tok, values);
+            } catch (Exception e) {
+                parser.reset();
+                stream.setPos(pos);
+                return values;
             }
-            stream.reset();
-        } catch (JsonEOFException e) {
-            // Ignore EOF exception.
         }
+        stream.compact();
         return values;
     }
 
