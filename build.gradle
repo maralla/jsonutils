@@ -1,5 +1,9 @@
+plugins {
+    id "com.jfrog.bintray" version "1.8.3"
+}
+
 apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 group = 'com.fluffy'
 version = '1.0-SNAPSHOT'
@@ -12,10 +16,50 @@ targetCompatibility = 1.8
 
 
 repositories {
-        
-     maven { url "http://repo.maven.apache.org/maven2" }
+    jcenter()
 }
+
 dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version:'2.9.5'
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version:'5.0.3'
+}
+
+task sourceJar(type: Jar) {
+    classifier 'sources'
+    from sourceSets.main.allJava
+}
+
+bintray {
+    user = project.bintrayUser
+    key = project.bintrayKey
+    publications = ['maven']
+    pkg {
+        repo = 'fluffy'
+        name = 'jsonutils'
+        userOrg = 'maralla'
+        licenses = ['MIT']
+        vcsUrl = 'https://github.com/maralla/jsonutils.git'
+        version {
+            name = '1.0'
+            released = new Date()
+            desc = 'Incremental JSON stream parsing.'
+            gpg {
+                sign = true
+            }
+        }
+    }
+
+
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            artifact sourceJar
+            groupId 'com.fluffy'
+            artifactId 'jsonutils'
+            version '1.0'
+        }
+    }
 }
